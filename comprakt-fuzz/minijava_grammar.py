@@ -3,10 +3,61 @@ from config import *
 
 INTEGER_LITERAL = String(charset=String.charset_num, min=1, max=10)
 
-IDENT = And(
-    String(charset=String.charset_alpha + "_", min=1, max=1),
-    String(charset=String.charset_alphanum + "_", max=14)
-)
+class TokenDef(Def):
+    cat = "token"
+class TokenRef(Ref):
+    cat = "token"
+
+TokenDef("IDENT",
+         And(
+             String(charset=String.charset_alpha + "_", min=1, max=1),
+             String(charset=String.charset_alphanum + "_", max=MAX_STRING_LENGTH - 1)
+         ))
+
+TokenDef("INTEGER_LITERAL",
+         String(charset=String.charset_num, min=1, max=10))
+
+TokenDef("class", "class ")
+TokenDef("{", " {\n")
+TokenDef("}", "\n}")
+TokenDef("(", "(")
+TokenDef(")", ")")
+TokenDef("[", "[")
+TokenDef("]", "]")
+TokenDef(";", ";")
+TokenDef("public", "public ")
+TokenDef("static", "static ")
+TokenDef("int", "int")
+TokenDef("boolean", "boolean")
+TokenDef("void", "void")
+TokenDef("String", "String")
+TokenDef("throws", "throws ")
+TokenDef("=", " = ")
+TokenDef("||", " ||")
+TokenDef("&&", " &&")
+TokenDef("==", " ==")
+TokenDef("!=", " !=")
+TokenDef("<", " <")
+TokenDef("<=", " <=")
+TokenDef(">", " >")
+TokenDef(">=", " >=")
+TokenDef("+", " +")
+TokenDef("-", " -")
+TokenDef("*", " +")
+TokenDef("/", " /")
+TokenDef("%", " %")
+TokenDef("!", "!")
+TokenDef(".", ".")
+TokenDef(",", ", ")
+TokenDef("null", "null")
+TokenDef("false", "false")
+TokenDef("true", "true")
+TokenDef("this", "this")
+TokenDef("new", "new ")
+TokenDef("while", "while ")
+TokenDef("if", "if ")
+TokenDef("else", "else ")
+TokenDef("return", "return")
 
 Def("Program",
     Join(
@@ -18,9 +69,9 @@ Def("Program",
 
 Def("ClassDeclaration",
     And(
-        "class ",
-        IDENT,
-        " {\n",
+        TokenRef("class"),
+        TokenRef("IDENT"),
+        TokenRef("{"),
         Opt(
             Join(
                 Ref("ClassMember"),
@@ -28,7 +79,7 @@ Def("ClassDeclaration",
                 max=MAX_CLASS_MEMBERS,
             )
         ),
-        "\n}"
+        TokenRef("}"),
     ))
 
 Def("ClassMember",
@@ -40,44 +91,61 @@ Def("ClassMember",
 
 Def("Field",
     And(
-        "public ",
+        TokenRef("public"),
         Ref("Type"),
         " ",
-        IDENT,
-        ";",
+        TokenRef("IDENT"),
+        TokenRef(";"),
     ))
 
 Def("MainMethod",
     And(
-        "public static void ",
-        IDENT,
-        " (String[] ",
-        IDENT,
-        ") ",
+        TokenRef("public"),
+        TokenRef("static"),
+        TokenRef("void"),
+        " ",
+        TokenRef("IDENT"),
+        TokenRef("("),
+        TokenRef("String"),
+        TokenRef("["),
+        TokenRef("]"),
+        " ",
+        TokenRef("IDENT"),
+        TokenRef(")"),
+        " ",
         Opt(Ref("MethodRest")),
         Ref("Block"),
     ))
 
 Def("Method",
     And(
-        "public ",
+        TokenRef("public"),
         Ref("Type"),
         " ",
-        IDENT,
-        " (",
+        TokenRef("IDENT"),
+        TokenRef("("),
         Opt(Ref("Parameters")),
-        ") ",
+        TokenRef(")"),
+        " ",
         Opt(Ref("MethodRest")),
         Ref("Block"),
     ))
 
 Def("MethodRest",
     And(
-        "throws ",
-        IDENT,
+        TokenRef("throws"),
+        TokenRef("IDENT"),
     ))
 
+# TODO
 Def("Parameters",
+    Or(
+        "",
+        Ref("Parameter"),
+        And(
+            Ref("Parameter")
+        )
+    )
     Join(
         Ref("Parameter"),
         sep=", ",
@@ -88,24 +156,25 @@ Def("Parameter",
     And(
         Ref("Type"),
         " ",
-        IDENT,
+        TokenRef("IDENT"),
     ))
 
 Def("Type",
     Or(
         And(
             Ref("Type"),
-            "[]",
+            TokenRef("["),
+            TokenRef("]"),
         ),
         Ref("BasicType"),
     ))
 
 Def("BasicType",
     Or(
-        "int",
-        "boolean",
-        "void",
-        IDENT
+        TokenRef("int"),
+        TokenRef("boolean"),
+        TokenRef("void"),
+        TokenRef("IDENT"),
     ))
 
 Def("Statement",
@@ -120,13 +189,13 @@ Def("Statement",
 
 Def("Block",
     And(
-        " {\n",
+        TokenRef("{"),
         Join(
             Ref("BlockStatement"),
             sep="\n",
             max=MAX_BLOCK_STATEMENTS,
         ),
-        "\n}"
+        TokenRef("}"),
     ))
 
 Def("BlockStatement",
@@ -139,36 +208,40 @@ Def("LocalVariableDeclarationStatement",
     And(
         Ref("Type"),
         " ",
-        IDENT,
+        TokenRef("IDENT"),
         Opt(
             And(
-                " = ",
+                TokenRef("="),
                 Ref("Expression"),
             )
         ),
-        ";"
+        TokenRef(";"),
     ))
 
 Def("EmptyStatement",
-    ";")
+    TokenRef(";"))
 
 Def("WhileStatement",
     And(
-        "while (",
+        TokenRef("while"),
+        TokenRef("("),
         Ref("Expression"),
-        ") ",
+        TokenRef(")"),
+        " ",
         Ref("Statement"),
     ))
 
 Def("IfStatement",
     And(
-        "if (",
+        TokenRef("if"),
+        TokenRef("("),
         Ref("Expression"),
-        ") ",
+        TokenRef(")"),
+        " ",
         Ref("Statement"),
         Opt(
             And(
-                "else ",
+                TokenRef("else"),
                 Ref("Statement"),
             )
         )
@@ -177,16 +250,17 @@ Def("IfStatement",
 Def("ExpressionStatement",
     And(
         Ref("Expression"),
-        ";"
+        TokenRef(";"),
     ))
 
 Def("ReturnStatement",
     And(
-        "return",
+        TokenRef("return"),
+        " ",
         Opt(
             Ref("Expression"),
         ),
-        ";"
+        TokenRef(";"),
     ))
 
 Def("Expression",
@@ -196,7 +270,7 @@ Def("AssignmentExpression",
     And(
         Ref("LogicalOrExpression"),
         Opt(
-            " = ",
+            TokenRef("="),
             Ref("AssignmentExpression"),
         )
     ))
@@ -205,7 +279,7 @@ Def("LogicalOrExpression",
     And(
         Opt(
             Ref("LogicalOrExpression"),
-            " ||",
+            TokenRef("||"),
         ),
         Ref("LogicalAndExpression"),
     ))
@@ -214,7 +288,7 @@ Def("LogicalAndExpression",
     And(
         Opt(
             Ref("LogicalAndExpression"),
-            " &&",
+            TokenRef("&&"),
         ),
         Ref("EqualityExpression"),
     ))
@@ -224,8 +298,8 @@ Def("EqualityExpression",
         Opt(
             Ref("EqualityExpression"),
             Or(
-                " ==",
-                " !=",
+                TokenRef("=="),
+                TokenRef("!="),
             ),
         ),
         Ref("RelationalExpression"),
@@ -236,10 +310,10 @@ Def("RelationalExpression",
         Opt(
             Ref("RelationalExpression"),
             Or(
-                " <",
-                " <=",
-                " >",
-                " >=",
+                TokenRef("<"),
+                TokenRef("<="),
+                TokenRef(">"),
+                TokenRef(">="),
             ),
         ),
         Ref("AdditiveExpression"),
@@ -250,8 +324,8 @@ Def("AdditiveExpression",
         Opt(
             Ref("AdditiveExpression"),
             Or(
-                " +",
-                " -",
+                TokenRef("+"),
+                TokenRef("-"),
             ),
         ),
         Ref("MultiplicativeExpression"),
@@ -262,13 +336,12 @@ Def("MultiplicativeExpression",
         Opt(
             Ref("MultiplicativeExpression"),
             Or(
-                " *",
-                " /",
-                " %",
+                TokenRef("*"),
+                TokenRef("/"),
+                TokenRef("%"),
             ),
         ),
         And(
-            " ",
             Ref("UnaryExpression"),
         )
     ))
@@ -278,8 +351,8 @@ Def("UnaryExpression",
         Ref("PostfixExpression"),
         And(
             Or(
-                "!",
-                "-",
+                TokenRef("!"),
+                TokenRef("-"),
             ),
             Ref("UnaryExpression"),
         )
@@ -288,11 +361,13 @@ Def("UnaryExpression",
 Def("PostfixExpression",
     And(
         Ref("PrimaryExpression"),
-        Join(
-            Ref("PostfixOp"),
-            sep="",
-            max=MAX_POSTFIX_OPS,
-        ),
+        Opt(
+            Join(
+                Ref("PostfixOp"),
+                sep="",
+                max=MAX_POSTFIX_OPS,
+            )
+        )
     ))
 
 Def("PostfixOp",
@@ -304,26 +379,27 @@ Def("PostfixOp",
 
 Def("MethodInvocation",
     And(
-        ".",
-        IDENT,
-        "(",
+        TokenRef("."),
+        TokenRef("IDENT"),
+        TokenRef("("),
         Ref("Arguments"),
-        ")",
+        TokenRef(")"),
     ))
 
 Def("FieldAccess",
     And(
-        ".",
-        IDENT,
+        TokenRef("."),
+        TokenRef("IDENT"),
     ))
 
 Def("ArrayAccess",
     And(
-        "[",
+        TokenRef("["),
         Ref("Expression"),
-        "]",
+        TokenRef("]"),
     ))
 
+# TODO
 Def("Arguments",
     Opt(
         Join(
@@ -335,22 +411,22 @@ Def("Arguments",
 
 Def("PrimaryExpression",
     Or(
-        "null",
-        "false",
-        "true",
-        INTEGER_LITERAL,
-        IDENT,
+        TokenRef("null"),
+        TokenRef("false"),
+        TokenRef("true"),
+        TokenRef("INTEGER_LITERAL"),
+        TokenRef("IDENT"),
         And(
-            IDENT,
-            "(",
+            TokenRef("IDENT"),
+            TokenRef("("),
             Ref("Arguments"),
-            ")",
+            TokenRef(")"),
         ),
-        "this",
+        TokenRef("this"),
         And(
-            "(",
+            TokenRef("("),
             Ref("Expression"),
-            ")",
+            TokenRef(")"),
         ),
         Ref("NewObjectExpression"),
         Ref("NewArrayExpression"),
@@ -358,21 +434,23 @@ Def("PrimaryExpression",
 
 Def("NewObjectExpression",
     And(
-        "new ",
-        IDENT,
-        "()"
+        TokenRef("new"),
+        TokenRef("IDENT"),
+        TokenRef("("),
+        TokenRef(")"),
     ))
 
 Def("NewArrayExpression",
     And(
-        "new ",
+        TokenRef("new"),
         Ref("BasicType"),
-        "[",
+        TokenRef("["),
         Ref("Expression"),
-        "]",
+        TokenRef("]"),
         Opt(
             Join(
-                "[]",
+                TokenRef("["),
+                TokenRef("]"),
                 sep="",
                 max=MAX_ARRAY_DECL_DIMENSION,
             )
